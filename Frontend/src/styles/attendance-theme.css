@@ -1,0 +1,348 @@
+/* ============================================================
+   FULL MERGED LIGHT THEME (Attendance / Students / Reports)
+   - Light background only (no dark colors)
+   - Visible colored buttons (Primary purple, Manage blue, Delete red)
+   - White cards with pale lavender header
+   - Placeholder and dropdown options styled (purple hover/selected)
+   - Overrides for stubborn dark classes via !important
+   ============================================================ */
+
+/* ------------------ Palette & Tokens ------------------ */
+:root{
+  --bg-page: #f9fafb;
+  --nav-bg: #ffffff;
+  --nav-text: #2f3a47;
+  --nav-hover-bg: #f3f5fb;
+
+  --card-bg: #ffffff;
+  --card-border: #e8edf5;
+  --card-header-bg: #f3f5ff; /* pale lavender */
+
+  --title-color: #5b21b6; /* purple title */
+
+  --primary: #6b4dff;        /* primary (Save, Download) */
+  --primary-hover: #5a3ee6;
+
+  --manage-blue: #2b6ef6;    /* Manage button */
+  --manage-blue-hover: #225ed6;
+
+  --danger: #ef4444;         /* delete */
+  --danger-hover: #d43a3a;
+
+  --muted: #6b7280;
+  --text-dark: #1f2937;
+
+  --chip-bg: #ffffff;
+  --chip-border: #e6ecf8;
+
+  --table-head-bg: #ffffff;
+  --table-border: #e9eef6;
+
+  --shadow-card: 0 8px 28px rgba(16,24,40,0.04);
+}
+
+/* ------------------ Global & Page ------------------ */
+.attendance-theme,
+.attendance-theme main,
+.attendance-theme body {
+  background: var(--bg-page) !important;
+  color: var(--text-dark) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Remove any lingering dark classes / backgrounds */
+.attendance-theme .dark,
+.attendance-theme .bg-dark,
+.attendance-theme [class*="bg-#0"],
+.attendance-theme [class*="bg-slate-900"],
+.attendance-theme .bg-slate-900 {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+/* ------------------ Navbar ------------------ */
+.attendance-theme nav,
+.attendance-theme .navbar,
+.attendance-theme header {
+  background: var(--nav-bg) !important;
+  color: var(--nav-text) !important;
+  border-bottom: 1px solid #eef1f7 !important;
+  box-shadow: none !important;
+}
+.attendance-theme nav a,
+.attendance-theme .nav-link { color: var(--nav-text) !important; }
+.attendance-theme .nav-link.active,
+.attendance-theme .nav-link:hover {
+  background: var(--nav-hover-bg) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+}
+
+/* ------------------ Cards & Panels ------------------ */
+.attendance-theme .card,
+.attendance-theme .attendance-card,
+.attendance-theme .panel,
+.attendance-theme .rounded-2xl {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--shadow-card) !important;
+  color: var(--text-dark) !important;
+}
+
+.attendance-theme .card-header,
+.attendance-theme .attendance-card .card-header,
+.attendance-theme .panel .panel-header {
+  background: var(--card-header-bg) !important;
+  color: var(--title-color) !important;
+  padding: 20px 22px !important;
+  border-bottom: 1px solid var(--card-border) !important;
+}
+.attendance-theme .card-header h2,
+.attendance-theme .card-title { color: var(--title-color) !important; font-weight: 600 !important; }
+
+/* Card content padding */
+.attendance-theme .card-content,
+.attendance-theme .CardContent,
+.attendance-theme .card > .card-content {
+  padding: 18px !important;
+}
+
+/* ------------------ Inputs / Selects ------------------ */
+.attendance-theme input,
+.attendance-theme select,
+.attendance-theme textarea,
+.attendance-theme .input,
+.attendance-theme .select-trigger,
+.attendance-theme .SelectTrigger {
+  background: #ffffff !important;
+  border: 1px solid #e6eaf3 !important;
+  color: var(--text-dark) !important;
+  padding: 10px 12px !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  font-weight: 500 !important;
+}
+
+.attendance-theme input:focus,
+.attendance-theme select:focus,
+.attendance-theme .select-trigger:focus {
+  outline: 3px solid rgba(107,77,255,0.12) !important;
+  outline-offset: 2px !important;
+}
+
+/* Search input */
+.attendance-theme input[type="search"],
+.attendance-theme .search-input {
+  background: #fff !important;
+  border: 1px solid #eef3fb !important;
+  padding: 12px 14px !important;
+  border-radius: 10px !important;
+}
+
+/* Placeholder color (corporate gray) */
+.attendance-theme ::placeholder { color: #9aa3b2 !important; opacity: 1 !important; }
+.attendance-theme input::-webkit-input-placeholder { color: #9aa3b2 !important; }
+.attendance-theme input::-moz-placeholder { color: #9aa3b2 !important; }
+.attendance-theme input:-ms-input-placeholder { color: #9aa3b2 !important; }
+
+/* ------------------ Buttons ------------------ */
+/* Primary (purple) */
+.attendance-theme button,
+.attendance-theme .btn,
+.attendance-theme .button-primary,
+.attendance-theme .btn-primary,
+.attendance-theme .bg-indigo-600 {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 10px 16px !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 20px rgba(107,77,255,0.12) !important;
+  cursor: pointer !important;
+}
+.attendance-theme button:hover,
+.attendance-theme .btn:hover { background: var(--primary-hover) !important; transform: translateY(-1px); }
+
+/* Manage (blue) */
+.attendance-theme .btn-manage,
+.attendance-theme .manage-btn,
+.attendance-theme button.manage {
+  background: var(--manage-blue) !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  padding: 8px 14px !important;
+  box-shadow: 0 6px 14px rgba(43,110,246,0.12) !important;
+}
+.attendance-theme .btn-manage:hover { background: var(--manage-blue-hover) !important; }
+
+/* Delete / Danger */
+.attendance-theme .delete-all,
+.attendance-theme .btn-danger,
+.attendance-theme button.delete-all {
+  background: var(--danger) !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 6px 18px rgba(239,68,68,0.12) !important;
+}
+.attendance-theme .delete-all:hover { background: var(--danger-hover) !important; }
+
+/* Ghost/secondary buttons */
+.attendance-theme .btn-clear,
+.attendance-theme .btn-ghost {
+  background: #fff !important;
+  color: var(--text-dark) !important;
+  border: 1px solid #e6eaf3 !important;
+  box-shadow: none !important;
+}
+
+/* Disabled states */
+.attendance-theme button:disabled,
+.attendance-theme .btn[disabled] {
+  background: #eef1f6 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+/* ------------------ Chips ------------------ */
+.attendance-theme .chip,
+.attendance-theme .badge,
+.attendance-theme .student-chip,
+.attendance-theme .students-chip {
+  background: var(--chip-bg) !important;
+  border: 1px solid var(--chip-border) !important;
+  color: var(--text-dark) !important;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+}
+
+/* ------------------ Select dropdown & options (PURPLE HOVER + SELECT) ------------------ */
+/* Dropdown container */
+.attendance-theme .SelectContent,
+.attendance-theme .select-content,
+.attendance-theme .radix-select-content,
+.attendance-theme .SelectContent {
+  background: #ffffff !important;
+  border: 1px solid #e4e6f2 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 32px rgba(0,0,0,0.05) !important;
+}
+
+/* Option items */
+.attendance-theme .SelectItem,
+.attendance-theme .select-item,
+.attendance-theme .radix-select-item,
+.attendance-theme .SelectItem {
+  padding: 10px 14px !important;
+  color: #1e293b !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+}
+
+/* Hover - light lavender */
+.attendance-theme .SelectItem:hover,
+.attendance-theme .select-item:hover,
+.attendance-theme .radix-select-item:hover {
+  background: #f3eaff !important;      /* Light lavender hover */
+  color: #4b2bb5 !important;           /* Deep purple text */
+}
+
+/* Selected/checked - stronger lavender */
+.attendance-theme .SelectItem[data-state="checked"],
+.attendance-theme .radix-select-item[data-state="checked"],
+.attendance-theme .select-item[data-selected="true"] {
+  background: #e9ddff !important;
+  color: #4b2bb5 !important;
+  font-weight: 600 !important;
+}
+
+/* Dropdown separators */
+.attendance-theme .SelectSeparator {
+  height: 1px !important;
+  background: #edeef5 !important;
+}
+
+/* Chevron color */
+.attendance-theme .select-trigger svg,
+.attendance-theme .SelectTrigger svg {
+  color: #6b7280 !important;
+}
+
+/* ------------------ Table ------------------ */
+.attendance-theme table {
+  width: 100% !important;
+  background: #fff !important;
+  border-collapse: collapse !important;
+}
+
+.attendance-theme th {
+  background: #fbfcff !important;
+  border-bottom: 1px solid var(--table-border) !important;
+  padding: 14px 16px !important;
+  color: var(--text-dark) !important;
+  font-weight: 700 !important;
+}
+
+.attendance-theme td {
+  padding: 14px 16px !important;
+  border-bottom: 1px solid #f3f6fb !important;
+  color: var(--text-dark) !important;
+}
+
+/* Table action buttons */
+.attendance-theme .table-actions button,
+.attendance-theme .action-icon-btn {
+  background: #f8fafc !important;
+  border: 1px solid #eef1f7 !important;
+  color: var(--text-dark) !important;
+  border-radius: 8px !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* ------------------ Modal / Dialog ------------------ */
+.attendance-theme .radix-dialog-content,
+.attendance-theme .DialogContent,
+.attendance-theme .dialog {
+  background: #fff !important;
+  color: var(--text-dark) !important;
+  border: 1px solid #e6eaf3 !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* ------------------ Labels & muted text ------------------ */
+.attendance-theme .label,
+.attendance-theme label,
+.attendance-theme .text-muted-foreground,
+.attendance-theme .text-muted {
+  color: var(--muted) !important;
+  font-weight: 500 !important;
+}
+
+/* ------------------ Misc / Helpers ------------------ */
+.attendance-theme a { color: var(--text-dark) !important; }
+.attendance-theme .controls-row,
+.attendance-theme .top-controls { display: flex !important; gap: 10px !important; align-items: center !important; }
+.attendance-theme .student-filters { display: grid !important; grid-template-columns: repeat(4,1fr) !important; gap: 18px !important; align-items: start !important; margin-top: 12px !important; margin-bottom: 16px !important; }
+
+@media (max-width: 768px) {
+  .attendance-theme .student-filters { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .attendance-theme .card-header { padding: 16px !important; }
+}
+
+/* Last-resort overrides for stubborn dark utilities */
+.attendance-theme .dark\:bg-slate-900,
+.attendance-theme .dark\:bg-gray-800,
+.attendance-theme .bg-slate-900,
+.attendance-theme .bg-[#0f1724] {
+  background: transparent !important;
+  color: inherit !important;
+}
