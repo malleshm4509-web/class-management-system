@@ -29,13 +29,13 @@ type Student = {
   id?: string;
 };
 
-const LS_STUDENTS = "app_students_v1";
-const LS_DEPARTMENTS = "app_departments_v1";
-const LS_SEMESTERS = "app_semesters_v1";
-const LS_SECTIONS = "app_sections_v1";
-const LS_SUBJECTS = "app_subjects_v1";
-const LS_TOMBSTONES = "app_deleted_usns_v1";
-
+const user = JSON.parse(localStorage.getItem("app_session_v1") || "{}");
+const LS_STUDENTS = `app_students_${user.id}`;
+const LS_DEPARTMENTS = `app_departments_${user.id}`;
+const LS_SEMESTERS = `app_semesters_${user.id}`;
+const LS_SECTIONS = `app_sections_${user.id}`;
+const LS_SUBJECTS = `app_subjects_${user.id}`;
+const LS_TOMBSTONES = `app_deleted_usns_${user.id}`;
 const LS_FILTERS = "app_filters_v1";
 const LS_SELECTED_DEPT = "app_selected_department_v1";
 const LS_SELECTED_SEM = "app_selected_semester_v1";
@@ -223,11 +223,18 @@ const Students = () => {
     } catch { return sectionsList[0] ?? ""; }
   });
   const [selectedSubject, setSelectedSubject] = useState<string>(() => {
+    // check if all filters selected
+
     try {
       if (initialFilters?.sub) return initialFilters.sub;
       return localStorage.getItem(LS_SELECTED_SUBJECT) ?? (subjectsList[0] ?? "");
     } catch { return subjectsList[0] ?? ""; }
   });
+  const isGroupSelected =
+  selectedDept &&
+  selectedSem !== "" &&
+  selectedSection &&
+  selectedSubject;
 
   useEffect(() => { if (departmentsList.length === 0) setSelectedDept(""); else if (!departmentsList.includes(selectedDept)) setSelectedDept(departmentsList[0] ?? ""); }, [departmentsList.join("|")]);
   useEffect(() => { if (semestersList.length === 0) setSelectedSem(""); else if (!semestersList.map(String).includes(String(selectedSem))) setSelectedSem(semestersList[0] ?? ""); }, [semestersList.join("|")]);
@@ -244,10 +251,10 @@ const Students = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeKey = () => {
-    const d = selectedDept || "_";
-    const s = selectedSem === "" ? "_" : String(selectedSem);
-    const sec = selectedSection || "_";
-    const sub = selectedSubject || "_";
+    const d = selectedDept ?? "";
+    const s = selectedSem === "" ? "" : String(selectedSem);
+    const sec = selectedSection ?? "";
+    const sub = selectedSubject ?? "";
     return `${d}::${s}::${sec}::${sub}`;
   };
 
@@ -654,7 +661,13 @@ const Students = () => {
     setIsEditOpen(false);
     setEditingUsn(null);
     try {
-      await api.put(`/students/${encodeURIComponent(editFormData.usn)}`, editFormData);
+      const user = JSON.parse(localStorage.getItem("app_session_v1") || "{}");
+
+await api.put(`/students/${encodeURIComponent(editFormData.usn)}`, editFormData, {
+  params: {
+    userId: user.id
+  }
+});
       toast({ title: "Updated", description: "Student updated on server." });
     } catch (err) {
       console.warn("update failed:", err);
@@ -669,14 +682,25 @@ const Students = () => {
     const k = activeKey();
 
     try {
-      await api.delete(`/students/${encodeURIComponent(usn)}`, { data: { department: selectedDept || null, semester: selectedSem || null, section: selectedSection || null, subject: selectedSubject || null } });
-      setDeletedUsnsMap(prev => {
-        const next: Record<string, Set<string>> = {};
-        for (const [key, setVal] of Object.entries(prev)) next[key] = new Set(Array.from(setVal));
-        if (!next[k]) next[k] = new Set();
-        next[k].add(usn);
-        return next;
-      });
+      const user = JSON.parse(localStorage.getItem("app_session_v1") || "{}");
+
+const payload = {
+  name: formData.name,
+  usn: formData.usn,
+  email: formData.email,
+  phone: formData.phone,
+  department: selectedDept,
+  semester: selectedSem,
+  section: selectedSection,
+  subject: selectedSubject,
+  userId: user.id
+};
+
+await api.delete(`/students/${encodeURIComponent(usn)}`, {
+  params: {
+    userId: user.id
+  }
+});
       writeCurrentStudents(currentStudents.filter(s => s.usn !== usn));
       toast({ title: "Deleted", description: `${usn} deleted on server.` });
       return;
@@ -731,13 +755,15 @@ const Students = () => {
     if (usns.length === 0) { toast({ title: "Nothing to delete", description: "No students in this group." }); return; }
 
     // Explicit scoped payload
-    const scopePayload = {
-      department: selectedDept,
-      semester: selectedSem,
-      section: selectedSection,
-      subject: selectedSubject,
-      scoped: true
-    };
+  const user = JSON.parse(localStorage.getItem("app_session_v1") || "{}");
+
+const scopePayload = {
+  department: selectedDept,
+  semester: selectedSem,
+  section: selectedSection,
+  subject: selectedSubject,
+  userId: user.id
+};
 
     // helper to mark local tombstones for given usns (only active group)
     const markLocalDeleted = (usnList: string[]) => {
@@ -948,7 +974,13 @@ const Students = () => {
     const k = activeKey();
     (async () => {
       try {
-        const res = await api.get("/students");
+        const user = JSON.parse(localStorage.getItem("app_session_v1") || "{}");
+
+const res = await api.get("/students", {
+  params: {
+    userId: user.id
+  }
+});
         if (!mounted) return;
         const all: Student[] = Array.isArray(res.data) ? res.data : [];
         const [d, s, sec, sub] = k.split("::").map(x => x === "_" ? "" : x);
@@ -1006,17 +1038,49 @@ const Students = () => {
 
                 <div className="flex flex-wrap items-center gap-2">
                   <input type="file" ref={fileInputRef} accept=".xlsx,.xls" onChange={handleFileChange} style={{ display: "none" }} />
-                  <Button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-1" style={{ backgroundColor: colors.addBlue, color: "white", borderRadius: 8 }}>
-                    <FileUp /> Import
-                  </Button>
+                  <Button
+  disabled={!isGroupSelected}
+  onClick={() => fileInputRef.current?.click()}
+  className="flex items-center gap-2 px-3 py-1"
+  style={{
+    backgroundColor: isGroupSelected ? colors.addBlue : "#9ca3af",
+    color: "white",
+    borderRadius: 8,
+    cursor: isGroupSelected ? "pointer" : "not-allowed"
+  }}
+>
+  <FileUp /> Import
+</Button>
 
-                  <Button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 px-3 py-1" style={{ backgroundColor: colors.addBlue, color: "white", borderRadius: 8 }}>
-                    <Plus /> Add
-                  </Button>
+<Button
+  disabled={!isGroupSelected}
+  onClick={() => setIsAddOpen(true)}
+  className="flex items-center gap-2 px-3 py-1"
+  style={{
+    backgroundColor: isGroupSelected ? colors.addBlue : "#9ca3af",
+    color: "white",
+    borderRadius: 8,
+    cursor: isGroupSelected ? "pointer" : "not-allowed"
+  }}
+>
+  <Plus /> Add
+</Button>
 
-                  <Button onClick={handleDeleteAll} className="flex items-center gap-2 px-3 py-1" style={{ backgroundColor: colors.danger, color: "white", borderRadius: 8 }}>
-                    <Trash2 /> Delete All
-                  </Button>
+<Button
+  disabled={!isGroupSelected || currentStudents.length === 0}
+  onClick={handleDeleteAll}
+  className="flex items-center gap-2 px-3 py-1"
+  style={{
+    backgroundColor:
+      isGroupSelected && currentStudents.length > 0 ? "#ea6a6e" : "#9ca3af",
+    color: "white",
+    borderRadius: 8,
+    cursor:
+      isGroupSelected && currentStudents.length > 0 ? "pointer" : "not-allowed",
+  }}
+>
+  <Trash2 /> Delete All
+</Button>
                 </div>
               </div>
 

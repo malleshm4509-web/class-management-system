@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here.
+All colors MUST be HSL.
+*/
+
+@layer base {
+@layer base {
+  :root {
+    /* SUPER LIGHT BACKGROUND */
+    --background: 0 0% 98%;
+    --foreground: 220 25% 12%;
+
+    /* Cards (light grey) */
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 15%;
+
+    /* Inputs + table rows */
+    --input: 0 0% 100%;
+    --border: 220 10% 80%;
+
+    /* Muted text */
+    --muted: 220 20% 96%;
+    --muted--foreground: 0 0% 100%;
+
+
+    /* Primary buttons (blue) */
+    --primary: 217 90% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Accent highlight */
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Your dark theme unchanged */
+    --background: 220 20% 8%;
+    --foreground: 220 15% 95%;
+    --card: 220 20% 12%;
+    --card-foreground: 220 15% 95%;
+    --input: 220 15% 18%;
+    --border: 220 15% 18%;
+  }
+}
+
+}

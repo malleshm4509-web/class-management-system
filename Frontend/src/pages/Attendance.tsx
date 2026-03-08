@@ -132,6 +132,28 @@ export default function Attendance() {
     });
   };
 
+useEffect(() => {
+  try {
+    const raw = localStorage.getItem(LS_SESSIONS);
+    const sessions = raw ? JSON.parse(raw) : {};
+    setSessionPresent(sessions[sessionKey]?.present || {});
+  } catch {}
+
+  try {
+    const rawTotals = localStorage.getItem(LS_TOTALS);
+    const allTotals = rawTotals ? JSON.parse(rawTotals) : {};
+    const entry = allTotals[filterKey] || { classes: 0, totals: {} };
+    setClassesCount(entry.classes || 0);
+    setTotals(entry.totals || {});
+  } catch {}
+
+  // Recompute from stored sessions
+  recomputeTotalsFromSessions();
+
+  // Also fetch from server
+  fetchTotalsFromServer();
+
+}, [sessionKey, filterKey, students.length]);
   useEffect(() => {
     const onCustom = (ev: Event) => {
       try {
@@ -320,39 +342,93 @@ export default function Attendance() {
 
   // -------- END prune logic --------------------------------------
 
+  // Recompute totals from locally stored sessions for all groups (and cache to LS_TOTALS)
+const recomputeTotalsFromSessions = () => {
+  try {
+    const raw = localStorage.getItem(LS_SESSIONS);
+    const sessions = raw ? JSON.parse(raw) : {};
+
+    const classDates = new Set<string>();
+    const totalsById: Record<string, number> = {};
+
+    Object.entries(sessions).forEach(([key, value]: any) => {
+      if (!key.endsWith(filterKey)) return;
+      if (!value || value.draft) return;
+
+      const date = key.split("::")[0];
+      classDates.add(date);
+
+      const present = value.present || {};
+
+      Object.keys(present).forEach((studentId) => {
+        if (present[studentId]) {
+          totalsById[studentId] = (totalsById[studentId] || 0) + 1;
+        }
+      });
+    });
+
+    const totalClasses = classDates.size;
+
+    setClassesCount(totalClasses);
+    setTotals(totalsById);
+
+    // cache for performance
+    const rawTotals = localStorage.getItem(LS_TOTALS);
+    const allTotals = rawTotals ? JSON.parse(rawTotals) : {};
+
+    allTotals[filterKey] = {
+      classes: totalClasses,
+      totals: totalsById,
+    };
+
+    localStorage.setItem(LS_TOTALS, JSON.stringify(allTotals));
+
+  } catch (err) {
+    console.error("Attendance recompute failed", err);
+  }
+};
+
   // fetch totals from server (best-effort)
-  const fetchTotalsFromServer = async () => {
-    try {
-      const res = await api.get(filters.sub ? `/attendance/by-subject/${encodeURIComponent(filters.sub)}` : "/attendance");
-      const rows: any[] = Array.isArray(res.data) ? res.data : [];
-      const allowedUsns = new Set(students.map((s) => s.usn));
+const fetchTotalsFromServer = async () => {
+  try {
+    if (!filters.sub) return;
 
-      const totalsByUsn: Record<string, number> = {};
-      const dateSet = new Set<string>();
+    const res = await api.get(`/attendance/by-subject/${encodeURIComponent(filters.sub)}`);
 
-      rows.forEach((r) => {
-        if (!allowedUsns.has(r.usn)) return;
-        if (r.attendDate) dateSet.add(r.attendDate);
-        if (!totalsByUsn[r.usn]) totalsByUsn[r.usn] = 0;
-        if (r.present) totalsByUsn[r.usn] += 1;
-      });
+    const rows: any[] = Array.isArray(res.data) ? res.data : [];
 
-      const totalsById: Record<string, number> = {};
-      students.forEach((s) => {
-        totalsById[s.id] = totalsByUsn[s.usn ?? ""] || 0;
-      });
+    const totalsByUsn: Record<string, number> = {};
+    const dateSet = new Set<string>();
 
-      setClassesCount(dateSet.size);
-      setTotals(totalsById);
+    rows.forEach((r) => {
 
-      const raw = localStorage.getItem(LS_TOTALS);
-      const allTotals = raw ? JSON.parse(raw) : {};
-      allTotals[filterKey] = { classes: dateSet.size, totals: totalsById };
-      localStorage.setItem(LS_TOTALS, JSON.stringify(allTotals));
-    } catch (err) {
-      // ignore
-    }
-  };
+      // count total classes (unique dates)
+      if (r.attendDate) {
+        dateSet.add(r.attendDate);
+      }
+
+      // only count if student present
+      if (r.present === true) {
+        totalsByUsn[r.usn] = (totalsByUsn[r.usn] || 0) + 1;
+      }
+
+    });
+
+    const totalsById: Record<string, number> = {};
+
+    students.forEach((s) => {
+      totalsById[s.id] = totalsByUsn[s.usn ?? ""] || 0;
+    });
+
+    const totalClasses = dateSet.size;
+
+    setClassesCount(totalClasses);
+    setTotals(totalsById);
+
+  } catch (err) {
+    console.error("Failed to fetch attendance totals", err);
+  }
+};
 
   useEffect(() => {
     try {
@@ -367,81 +443,40 @@ export default function Attendance() {
       setClassesCount(entry.classes || 0);
       setTotals(entry.totals || {});
     } catch {}
-    fetchTotalsFromServer();
+    // Recompute from stored sessions to ensure totals are consistent with saved attendance dates.
+    recomputeTotalsFromSessions();
+fetchTotalsFromServer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionKey, filterKey, students.length]);
 
   // persist session/totals locally and notify (same as before)
   // NOTE: added forceIncrement parameter to allow increment on every save click when desired.
-  const persistSessionLocally = (final = false, forceIncrement = false) => {
+const persistSessionLocally = (final = false) => {
+  try {
+    const rawSessions = localStorage.getItem(LS_SESSIONS);
+    const sessions = rawSessions ? JSON.parse(rawSessions) : {};
+
+    sessions[sessionKey] = {
+      present: { ...sessionPresent },
+      draft: !final,
+    };
+
+    localStorage.setItem(LS_SESSIONS, JSON.stringify(sessions));
+
+    // recompute totals only from sessions
+    recomputeTotalsFromSessions();
+
     try {
-      const rawSessions = localStorage.getItem(LS_SESSIONS);
-      const sessions = rawSessions ? JSON.parse(rawSessions) : {};
-      const rawTotals = localStorage.getItem(LS_TOTALS);
-      const allTotals = rawTotals ? JSON.parse(rawTotals) : {};
-      const totalsEntry = allTotals[filterKey] || { classes: 0, totals: {} };
-
-      const prevSession = sessions[sessionKey]; // may be undefined
-      const prevPresent: Record<string, boolean> = (prevSession && prevSession.present) || {};
-
-      const newPresentIds = Object.keys(sessionPresent).filter((id) => sessionPresent[id]);
-      const prevPresentIds = Object.keys(prevPresent).filter((id) => prevPresent[id]);
-
-      const isNewSession = !prevSession;
-      const wasDraft = !!(prevSession && prevSession.draft);
-
-      const updatedTotals: Record<string, number> = { ...(totalsEntry.totals || {}) };
-
-      if (final) {
-        if (forceIncrement) {
-          // Force increment behavior: every finalization increments classes and present totals
-          totalsEntry.classes = (Number(totalsEntry.classes) || 0) + 1;
-          newPresentIds.forEach((id) => {
-            updatedTotals[id] = (updatedTotals[id] || 0) + 1;
-          });
-        } else {
-          // Original safe behavior: increment only when new or draft->final, otherwise apply diffs
-          if (isNewSession || wasDraft) {
-            totalsEntry.classes = (Number(totalsEntry.classes) || 0) + 1;
-            newPresentIds.forEach((id) => {
-              updatedTotals[id] = (updatedTotals[id] || 0) + 1;
-            });
-          } else {
-            // Editing an already-finalized session: apply differential changes only
-            newPresentIds.forEach((id) => {
-              if (!prevPresent[id]) updatedTotals[id] = (updatedTotals[id] || 0) + 1;
-            });
-            prevPresentIds.forEach((id) => {
-              if (!sessionPresent[id]) updatedTotals[id] = Math.max(0, (updatedTotals[id] || 0) - 1);
-            });
-          }
-        }
-      } else {
-        // Draft: do not change classes count or totals
-      }
-
-      totalsEntry.totals = updatedTotals;
-      allTotals[filterKey] = totalsEntry;
-      // save session; mark draft status appropriately
-      sessions[sessionKey] = { present: { ...sessionPresent }, draft: !final };
-
-      localStorage.setItem(LS_SESSIONS, JSON.stringify(sessions));
-      localStorage.setItem(LS_TOTALS, JSON.stringify(allTotals));
-
-      setTotals(updatedTotals);
-      setClassesCount(Number(totalsEntry.classes) || 0);
-
-      try {
-        window.dispatchEvent(
-          new CustomEvent(final ? "attendance:updated" : "attendance:draft", {
-            detail: { sessionKey, filterKey, source: instanceIdRef.current },
-          })
-        );
-      } catch {}
-    } catch (e) {
-      console.error("Local persist failed:", e);
-    }
-  };
+      window.dispatchEvent(
+        new CustomEvent(final ? "attendance:updated" : "attendance:draft", {
+          detail: { sessionKey, filterKey, source: instanceIdRef.current },
+        })
+      );
+    } catch {}
+  } catch (e) {
+    console.error("Local persist failed:", e);
+  }
+};
 
   // ---------- UPDATED: saveAttendanceToServer (Option A) ----------
   // Every successful save increments Total Classes by +1 and present student totals by +1 (forced).
@@ -474,38 +509,15 @@ export default function Attendance() {
     try {
       // send to server
       await api.post("/attendance/bulk", payload);
-
-      // Persist locally as finalized AND force increment totals/classes for this save click
-      try {
-        persistSessionLocally(true, true); // final=true, forceIncrement=true (this updates LS_TOTALS)
+// Persist locally as finalized (updates totals/classes as needed)
+        try {
+          persistSessionLocally(true); // final=true
       } catch (e) {
         console.warn("Persist locally after server save failed:", e);
       }
 
-      // Immediately reflect increments in UI state (read from LS_TOTALS to stay consistent)
-      try {
-        const rawTotals = localStorage.getItem(LS_TOTALS);
-        const allTotals = rawTotals ? JSON.parse(rawTotals) : {};
-        const entry = allTotals[filterKey] || { classes: 0, totals: {} };
-
-        // set state from the entry we just updated via persistSessionLocally
-        setClassesCount(Number(entry.classes) || 0);
-        setTotals(entry.totals || {});
-      } catch (e) {
-        // fallback: increment state directly if LS read fails
-        setClassesCount((c) => Number(c || 0) + 1);
-        setTotals((prevTotals) => {
-          const next = { ...(prevTotals || {}) };
-          students.forEach((s) => {
-            if (sessionPresent[s.id]) {
-              next[s.id] = (Number(next[s.id] || 0) + 1);
-            }
-          });
-          return next;
-        });
-      }
-
-      // Do not fetch server totals immediately — we intentionally preserve local forced increment.
+      // Recompute totals from the stored sessions so UI reflects the accurate per-date totals.
+      recomputeTotalsFromSessions();
       toast({ title: "Saved successfully" });
     } catch (err) {
       console.warn("Save attendance server sync failed — saving as draft locally", err);
@@ -542,11 +554,14 @@ export default function Attendance() {
     setTimeout(() => persistSessionLocally(false), 0);
   };
 
-  const percentFor = (id: string) => {
-    const cls = Number(classesCount) || 0;
-    if (cls <= 0) return "0%";
-    return (((totals[id] || 0) / cls) * 100).toFixed(1) + "%";
-  };
+ const percentFor = (id: string) => {
+  const attended = totals[id] || 0;
+  const total = classesCount || 0;
+
+  if (total === 0) return "0%";
+
+  return ((attended / total) * 100).toFixed(1) + "%";
+};
 
   // small helper UI pieces to make selects look nicer
   const FilterCard = ({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) => (

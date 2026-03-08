@@ -266,18 +266,25 @@ export default function Marks(): JSX.Element {
   };
 
   // Helper: normalize a single raw string into payload mark + absent flag
-  const normalizeRawToPayload = (raw: any): { marks: number | "absent"; absent: boolean } => {
-    if (raw === null || raw === undefined) return { marks: "absent", absent: true };
-    const s = String(raw).trim();
-    if (s === "") return { marks: "absent", absent: true }; // EMPTY -> ABSENT
-    // Remove any non-number characters (allow decimal & minus)
-    const cleaned = s.replace(/[^0-9.-]/g, "");
-    const parsed = Number(cleaned);
-    if (s.toLowerCase() === "absent") return { marks: "absent", absent: true };
-    if (!isNaN(parsed)) return { marks: parsed, absent: false };
-    // Fallback: if non-numeric text entered, treat as 0 (but not absent)
-    return { marks: 0, absent: false };
-  };
+const normalizeRawToPayload = (raw: any): { marks: number | null; absent: boolean } => {
+  if (raw === null || raw === undefined) {
+    return { marks: null, absent: true };
+  }
+
+  const s = String(raw).trim();
+
+  if (s === "") {
+    return { marks: null, absent: true };
+  }
+
+  const parsed = Number(s);
+
+  if (!isNaN(parsed)) {
+    return { marks: parsed, absent: false };
+  }
+
+  return { marks: null, absent: true };
+};
 
   // save marks (bulk)
   const saveMarksBulk = async () => {
@@ -290,19 +297,19 @@ export default function Marks(): JSX.Element {
       return;
     }
 
-    const payload: MarkRow[] = currentStudents.map((s) => {
-      const raw = marksByUsn[s.usn];
-      const norm = normalizeRawToPayload(raw);
+const payload: MarkRow[] = currentStudents.map((s) => {
+  const raw = marksByUsn[s.usn];
+  const norm = normalizeRawToPayload(raw);
 
-      return {
-        usn: s.usn,
-        subject: filters.sub || "",
-        test: test,
-        marks: norm.marks === "absent" ? "absent" : Number(norm.marks),
-        maxMarks: maxMarks || 0,
-        absent: norm.absent,
-      };
-    });
+  return {
+    usn: s.usn,
+    subject: filters.sub || "",
+    test: test,
+    marks: norm.marks,
+    maxMarks: maxMarks || 0,
+    absent: norm.absent,
+  };
+});
 
     if (payload.length === 0) {
       toast({ title: "No students", description: "Nothing to save", variant: "warning" });

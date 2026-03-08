@@ -12,12 +12,12 @@ export default function Navbar() {
     }
   })();
 
-  // Hide navbar only on login page
-  if (location.pathname === "/login") return null;
+  // Hide navbar on login page (root path)
+  if (location.pathname === "/" || location.pathname === "/login") return null;
 
   const handleLogout = () => {
     localStorage.removeItem("app_session_v1");
-    navigate("/login");
+    navigate("/");
   };
 
   return (
